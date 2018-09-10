@@ -1,0 +1,624 @@
+
+#include "Nextion.h"
+
+// Variables necesarias de la pantalla
+
+NexText t0 = NexText(0, 1, "t3");
+NexText t28 = NexText(2,3,"t28"); // ubicacion
+NexText t38 = NexText(2,4,"t38"); // fecha de instalacion
+NexText t48 = NexText(2,5,"t48"); // tecnico que instala
+NexText t58 = NexText(2,15,"t58");
+NexText t83 = NexText(2,21,"t83");  // decibelios a los que despierta el registrador
+NexText t208 = NexText(2,22,"t208"); // Ponderacion temporal
+NexText t209 = NexText(2,23,"t209"); // Promediado
+NexText t210 = NexText(2,24,"t210"); 
+NexText t500 = NexText(2,22,"t500");
+NexText tcod = NexText(2,1,"t0");
+NexWaveform s0 = NexWaveform(0,3,"s0"); 
+
+NexButton b0 =  NexButton(2, 7, "b1");
+
+
+NexButton b12 = NexButton(11,3,"b33");
+
+//AJUSTES
+NexButton b10 =  NexButton(0, 32, "b1");
+
+//Descarga
+NexButton b9  =  NexButton(7, 3, "b0");
+
+// FECHA
+NexButton b11 = NexButton(8,28,"b0");
+NexText tini = NexText(8,30,"t12");
+NexText tfin = NexText(8,31,"t13");
+
+NexPage page7 = NexPage(7,0,"page6");
+time_t t = time(NULL);
+struct tm tm  = *localtime(&t);
+
+char oldname1[100] = "conf";
+char newname1[100] = "conf_OLD";
+string str;
+char oldname2[100] = "setup";
+char newname2[100] = "setup_OLD";
+
+// variables del archivo de Configuracion
+char ubicacion[100],finstalacion[100],instalador[100];
+
+
+char buffer[100],ponderacion[100],promediado[100],tiempopromedio[5],trigger[5],triggernum[5],ponderaciontemp[6],duracion[6],codigo[8];
+
+
+
+
+FILE *fichero; // Instantaneo
+FILE *fichero2; // Acceso al registrador
+FILE *fichero3; // Configuracion (codigo de dispositivo, ubicacion, fecha, y tecnico) 
+FILE *fichero4; // SETUP
+FILE *fichero5;
+FILE *fichero6;
+
+int i;
+char nombre[100];
+char str19[100];
+
+char *dest;
+char *dest2;
+char *dest3;
+char str1[10], str2[25], str3[25], str4[25], str5[10], str6[10], str7[10], str8[10];
+char str11[10], str12[25], str13[25], str14[25], str15[10], str16[10], str17[10], str18[10],strcode[13];
+
+NexTouch *nex_listen_list[] = 
+{
+    &b0,
+    &b9,	
+    &b11,
+    &b10,
+    &b12,
+    NULL
+};
+
+
+void b10PopCallback(void *ptr)
+{
+	
+	fichero6 = fopen("/home/pi/Desktop/registrador12/conf" , "r");
+	char *destino;
+	char ubi[100];
+                fgets(buffer, 99, fichero6);
+                printf("%s\n", buffer);
+                dest = strtok(buffer,"\n");
+                Serial.print("t28.txt=");
+                Serial.write(0x22);
+                Serial.print(buffer);
+                Serial.write(0x22);
+                Serial.write(0xff);
+                Serial.write(0xff);
+                Serial.write(0xff);
+
+                fgets(buffer, 99, fichero6);
+                printf("%s\n", buffer);
+                dest = strtok(buffer,"\n");
+                Serial.print("t38.txt=");
+                Serial.write(0x22);
+                Serial.print(buffer);
+                Serial.write(0x22);
+                Serial.write(0xff);
+                Serial.write(0xff);
+                Serial.write(0xff);
+
+                fgets(buffer, 99, fichero6);
+                printf("%s\n", buffer);
+                dest = strtok(buffer,"\n");
+                Serial.print("t48.txt=");
+                Serial.write(0x22);
+                Serial.print(buffer);
+                Serial.write(0x22);
+                Serial.write(0xff);
+                Serial.write(0xff);
+                Serial.write(0xff);
+
+
+	fclose(fichero6);
+	printf("%s\n","boton ajustes presionado" );
+}
+
+
+void b12PopCallback(void *ptr)
+{
+	printf("%s\n", "Enviando la fecha");
+ 
+
+	char f[20];
+        char g[20];
+	string h;
+	char *destday;
+	char *destmonth;
+
+	NexText t1 = NexText(12,1,"t94");
+	NexText t2 = NexText(12,3,"t95");
+
+        memset(f, 0, sizeof(f));
+        t1.getText(f, sizeof(f));
+	
+	memset(g, 0, sizeof(g));
+        t2.getText(g, sizeof(g));
+	
+        printf("%s\n" , "Fecha inicio:: ");
+        printf("%s\n" , f);
+        printf("%s\n" , "Fecha fin::  ");
+        printf("%s\n" , g);
+	printf("%s\n" , "Cambiando de pagina... ... .. .. .  ");	
+
+
+	char fechaconsi[20]={0};
+	char * diainicio;
+	char * mesinicio;
+	char * anyoinicio;
+	char * pch;
+	printf ("Splitting string \"%s\" into tokens:\n", f);
+
+	pch = strtok (f,"/");
+	int i = 0;
+	while (pch != NULL)
+	{
+		if(i==0)
+		{
+			diainicio = pch;
+		}
+		else if(i==1)
+		{
+			 mesinicio = pch;
+		}
+		else if(i==2)
+		{
+                         anyoinicio = pch;
+		}
+		pch = strtok (NULL, "/");
+		i=i+1;
+	}
+	
+	strcat(fechaconsi,anyoinicio);
+        strcat(fechaconsi,"-");
+        strcat(fechaconsi,mesinicio);
+        strcat(fechaconsi,"-");
+        strcat(fechaconsi,diainicio);
+	printf("%s\n", "al salir del while inicio. ");
+	printf("%s\n",fechaconsi);
+
+
+
+        char fechaconsf[20]={0};
+        char * diafin;
+        char * mesfin;
+        char * anyofin;
+        char * pch1;
+        pch1 = strtok (g,"/");
+
+	int j = 0;
+
+	while (pch1 != NULL)
+        {
+                if(j==0)
+                {
+                        diafin = pch1;
+                }
+                else if(j==1)
+                {
+                         mesfin = pch1;
+		}
+                else if(j==2)
+                {
+                         anyofin = pch1;
+                }
+                pch1 = strtok (NULL, "/");
+                j=j+1;
+		
+        }
+	strcat(fechaconsf,anyofin);
+	strcat(fechaconsf,"-");
+	strcat(fechaconsf,mesfin);
+	strcat(fechaconsf,"-");
+	strcat(fechaconsf,diafin);
+	printf("%s\n","Al salir del while de final");
+	printf("%s\n", fechaconsf);
+
+	                Serial.print("t25.txt=");
+                        Serial.write(0x22);
+                        Serial.print("Error de formato en las fechas, debe volver al formulario.");
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+
+	delay(3000);
+	page7.show();
+	
+}
+
+
+void b11PopCallback(void *ptr)
+{
+	printf("%s", "boton descarga pulsado 8 . \n");
+	char fini[20];
+	char ffin[20];
+
+	memset(ffin, 0, sizeof(ffin));
+        tfin.getText(ffin, sizeof(ffin));
+
+	memset(fini, 0, sizeof(fini));
+	tini.getText(fini, sizeof(fini));
+
+	printf("%s\n" , "Fecha inicio:: ");
+	printf("%s\n" , fini);
+	printf("%s\n" , "Fecha fin::  ");
+	printf("%s\n" , ffin );
+       
+}
+
+
+
+
+void b9PopCallback(void *ptr)
+{
+                Serial.print("t91.txt=");
+                        Serial.write(0x22);
+                        Serial.print("Procesando la copia de los registros");
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+	printf("%s\n", "probando.. .. .. ..");
+	delay(1000);
+	NexText t15 = NexText(7,4,"t26");
+	NexText t16 = NexText(7,5,"t27");
+
+	char fecha1[19];
+	char fecha2[19];
+
+	memset(fecha1, 0, sizeof(fecha1));
+	t15.getText(fecha1, sizeof(fecha1));
+
+        memset(fecha2, 0, sizeof(fecha2));
+        t16.getText(fecha2, sizeof(fecha2));
+
+	 printf("%s\n", "rango de fechas...  .. .. ..");
+	 printf("%s\n", "Fecha inicio:");
+
+	 printf("%s\n", fecha1);
+	 printf("%s\n", "Fecha fin: ");
+
+	 printf("%s\n", fecha2);
+
+
+	system("sh getDevices.sh");
+	FILE *devicesfile = fopen("/home/pi/Desktop/registrador12/dispositivos.txt", "r");
+	char devicename[100];
+	fgets(devicename,99,devicesfile);
+	fgets(devicename,99,devicesfile);
+
+	char *name;
+
+	printf("%s\n", "nombre del dispositivo .. .. ..");
+	char perm2[100]="chmod 775 /media/pi/";
+	strcat(perm2,devicename);
+	system(perm2);
+
+
+	char comandomkdir[100]="mkdir /media/pi/";
+	strcat(comandomkdir,devicename);
+	strcat(comandomkdir,"/descargas");
+	system(comandomkdir);
+
+	
+
+	char perm[100]= "chmod 775 /media/pi/";
+	strcat(perm, devicename);
+	strcat(perm,"/descargas");
+	system(perm);
+	
+
+	char umount[100]=" umount /media/pi/";
+	strcat(umount,devicename);
+
+
+	printf("%s\n", devicename );
+	name = strtok(devicename,"\n");
+	char comando[100]=" cp -r /home/pi/Documents/registros ";
+
+	strcat(comando, " ");
+	strcat(comando, "/media/pi/");
+	strcat(comando, name);
+	strcat(comando, "/descargas");	
+
+        printf("%s\n", comando);	
+                        Serial.print("j3.val=");
+                        Serial.print(33);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+	
+	delay(3000);
+                        Serial.print("j3.val=");
+                        Serial.print(66);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+	delay(3000);
+                        Serial.print("j3.val=");
+                        Serial.print(88);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+ delay(3000);
+
+                Serial.print("t91.txt=");
+                        Serial.write(0x22);
+                        Serial.print("Registros copiados satisfactoriamente");
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+ delay(3000);
+
+		Serial.print("j3.val=");
+                        Serial.print(100);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+
+
+	system(comando);
+	system(umount);
+	 delay(3000);
+
+ Serial.print("t91.txt=");
+                        Serial.write(0x22);
+                        Serial.print("Es seguro extraer el medio externo de almacenamiento");
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+
+
+	
+
+
+}
+
+void b0PopCallback(void *ptr)
+{
+        int year = tm.tm_year+1900;
+        int month = tm.tm_mon+1;
+        char anyo[4];
+        char mes[3];
+        char dia[2];
+        char hora[2];
+        char minu[2];
+        char secu[2];
+        char fecha2[20];
+        sprintf(anyo, "%i_", year);
+        sprintf(mes, "%i_",tm.tm_mon+1);
+        sprintf(dia, "%i_",tm.tm_mday);
+
+        sprintf(hora,"%i_",tm.tm_hour);
+        sprintf(minu,"%i_",tm.tm_min);
+        sprintf(secu,"%i",tm.tm_sec);
+        strcat(newname1,anyo);
+        strcat(newname1,mes);
+        strcat(newname1,dia);
+        strcat(newname1,hora);
+        strcat(newname1,minu);
+        strcat(newname1,secu);
+
+        strcat(newname2,anyo);
+        strcat(newname2,mes);
+        strcat(newname2,dia);
+        strcat(newname2,hora);
+        strcat(newname2,minu);
+        strcat(newname2,secu);
+        rename(oldname1,newname1);
+        rename(oldname2,newname2);
+
+        fichero3 = fopen("/home/pi/Desktop/registrador12/conf", "w+");
+        fichero4 = fopen("/home/pi/Desktop/registrador12/setup","w+");
+	
+
+        memset(ubicacion, 0, sizeof(ubicacion));
+        t28.getText(ubicacion, sizeof(ubicacion));
+        fprintf( fichero3, ubicacion);
+        fprintf(fichero3,"\n");
+
+        memset(finstalacion, 0 , sizeof(finstalacion));
+        t38.getText(finstalacion,sizeof(finstalacion));
+        fprintf( fichero3, finstalacion);
+        fprintf(fichero3,"\n");
+
+        memset(instalador, 0, sizeof(instalador));
+        t48.getText(instalador,sizeof(instalador));
+        fprintf( fichero3, instalador);
+        fprintf(fichero3,"\n");
+
+        memset(triggernum , 0, sizeof(triggernum));
+        t210.getText(triggernum, sizeof(triggernum));
+        fprintf(fichero4, triggernum);
+        fprintf(fichero4, "\n");
+
+  
+        memset(trigger, 0 , sizeof(trigger));
+        t83.getText(trigger, sizeof(trigger));
+        fprintf(fichero4, trigger);
+        fprintf(fichero4, "\n");
+
+
+        memset(ponderaciontemp, 0 , sizeof(ponderaciontemp));
+        t208.getText(ponderaciontemp, sizeof(ponderaciontemp));
+        fprintf(fichero4, ponderaciontemp);
+        fprintf(fichero4, "\n");
+
+
+        memset(tiempopromedio, 0 , sizeof(tiempopromedio));
+        t58.getText(tiempopromedio,sizeof(tiempopromedio));
+        fprintf(fichero4,tiempopromedio);
+        fprintf(fichero4, "\n");
+
+
+	memset(duracion, 0 , sizeof(duracion));
+        t500.getText(duracion,sizeof(duracion));
+        fprintf(fichero4,duracion);
+        fprintf(fichero4, "\n");
+
+        fprintf(fichero4, "3000");
+        fprintf(fichero4, "\n");
+ 
+  
+
+	
+	// Cerramos el puntero al fichero, si no no escribe.
+	fclose(fichero3);
+	fclose(fichero4);	
+//	b0.setText("ok3");
+	system("./tcn");
+}
+
+
+void setup()
+{
+	nexInit();
+//	system("./hora");
+	b0.attachPop(b0PopCallback, &b0);
+	b9.attachPop(b9PopCallback, &b9);   
+	b10.attachPop(b10PopCallback, &b10);     
+        b11.attachPop( b11PopCallback, &b11);
+	b11.setText("decargaNO");
+	b12.attachPop(b12PopCallback, &b12);
+//	b11.setText("8");
+}
+
+
+void loop()
+{ 
+
+	//   tcod.setText("TCNPRUEBA");
+
+	// Para que este pendiente de los botones.
+	nexLoop(nex_listen_list);
+	fichero5 = fopen("/home/pi/Desktop/registrador12/deviceCode","r");
+	fichero = fopen("/home/pi/Documents/data/instantaneo","r");
+	while(!feof(fichero))
+	{
+		// recogemos los valores del archivo de instantaneo
+		// el primero varia cada segundo es el LAeq1s
+		// el segundo valor es el LAeq1min 
+		// el tercer valor es el LCeq1min
+		// el cuarto es el LAmax
+		// el quinto es el LAmin
+		// el sexto es la hora a la que se produce
+
+
+		fscanf(fichero5,"%s",strcode);
+		fscanf(fichero, "%s %s %s %s %s %s", str11, str12, str13, str14, str15, str16);
+		
+		
+		printf("%s\n", str11);			
+("t0.txt=");
+                        Serial.write(0x22);
+                        Serial.print(strcode);
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+		
+
+                Serial.print("t890.txt=");
+                        Serial.write(0x22);
+                        Serial.print(strcode);
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+
+		// Mostramos el LAeq1s
+		   //En la pantalla de texto
+			Serial.print("t3.txt=");
+			Serial.write(0x22);
+			Serial.print(str11);
+			Serial.write(0x22);	
+			Serial.write(0xff);
+			Serial.write(0xff);
+			Serial.write(0xff);
+
+		   // y en el vumetro y la grafica
+			
+			dest = strtok(str11,".");
+					
+			i = atoi(dest);
+			s0.addValue(0,i);
+			Serial.print("j0.val=");
+			Serial.print(i);
+			Serial.write(0xff);
+			Serial.write(0xff);
+			Serial.write(0xff);
+		
+			//fgets(str12,5,fichero);
+                        // LeqA 1min
+                        Serial.print("t2.txt=");
+                        Serial.write(0x22);
+                        Serial.print(str12);
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+			//fgets(str13,5,fichero);
+
+		
+			// LeqC 1min
+			Serial.print("t109.txt=");
+			Serial.write(0x22);
+			Serial.print(str13);
+			Serial.write(0x22);
+			Serial.write(0xff);
+			Serial.write(0xff);
+			Serial.write(0xff);
+
+			//fgets(str14,5,fichero);
+			// LAmin
+			Serial.print("t4.txt=");
+			Serial.write(0x22);
+			Serial.print(str14);
+			Serial.write(0x22);
+			Serial.write(0xff);
+			Serial.write(0xff);
+			Serial.write(0xff);
+                  
+			//fgets(str15,5,fichero);
+			// LAmax
+			Serial.print("t110.txt=");
+			Serial.write(0x22);
+			Serial.print(str15);
+			Serial.write(0x22);
+			Serial.write(0xff);
+			Serial.write(0xff);
+			Serial.write(0xff);
+
+                  // Mostramos la hora del valor minuto a minuto
+                        //hora
+			//fgets(str16,5,fichero);
+
+                        Serial.print("t1.txt=");
+                        Serial.write(0x22);
+                        Serial.print(str16);
+                        Serial.write(0x22);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+                        Serial.write(0xff);
+
+		
+	}delay(1000);
+}
